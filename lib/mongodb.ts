@@ -1,3 +1,13 @@
+// Add this at the VERY TOP of the file (before any imports if possible)
+import dns from "node:dns/promises";
+
+// Use Cloudflare + Google DNS (both support SRV records perfectly)
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+
+// Then continue with your normal code
+// const uri = process.env.MONGODB_URI;
+// etc...
+
 import { MongoClient, type Db } from "mongodb";
 
 const MONGODB_URI = process.env.MONGODB_URI!;

@@ -15,9 +15,18 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
+  HelpCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 const navItems = {
   student: [
@@ -107,20 +116,93 @@ export function DashboardSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border p-3 space-y-2">
         {!collapsed && (
-          <div className="mb-3 rounded-lg bg-sidebar-accent px-3 py-2">
+          <div className="rounded-lg bg-sidebar-accent px-3 py-2">
             <p className="text-xs font-medium text-sidebar-accent-foreground">{user.name}</p>
             <p className="text-xs text-sidebar-foreground/70 capitalize">{user.role}</p>
           </div>
         )}
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-        >
-          <LogOut className="h-5 w-5 shrink-0" />
-          {!collapsed && <span>Sign Out</span>}
-        </button>
+
+        {/* Help Button - always visible, even when collapsed */}
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                collapsed && "justify-center px-0"
+              )}
+            >
+              <HelpCircle className="h-5 w-5 shrink-0" />
+              {!collapsed && <span>Help & Guide</span>}
+            </Button>
+          </DialogTrigger>
+
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Welcome to SpaceOptiX</DialogTitle>
+              <DialogDescription>
+                Quick guide to help you navigate and use the platform effectively.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-6">
+              <div>
+                <h3 className="font-semibold text-lg mb-2">1. Finding the Right Venue</h3>
+                <p className="text-sm text-muted-foreground">
+                  Go to <strong>Explore Venues</strong> in the sidebar.  
+                  Use the search bar and type filter to quickly find classrooms, labs, auditoriums, sports facilities or open areas.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-lg mb-2">2. Booking a Venue</h3>
+                <p className="text-sm text-muted-foreground">
+                  Click on a venue card → press <strong>Book This Venue</strong>.  
+                  Choose your preferred date and time slot → submit the request.  
+                  <br />
+                  <span className="text-xs text-muted-foreground italic">
+                    Student & Professor bookings usually require approval.
+                  </span>
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-lg mb-2">3. Managing Your Bookings</h3>
+                <p className="text-sm text-muted-foreground">
+                  Visit <strong>My Bookings</strong> to see all your requests: pending, approved, rejected, upcoming and past.  
+                  You can view details or cancel bookings (if still allowed).
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-lg mb-2">4. Your Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  Click your initials/avatar in the top-right corner → select <strong>Profile</strong> to view or update your information.
+                </p>
+              </div>
+
+              {user.role === "admin" && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Admin Controls</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Manage venues, review approval requests, handle users, and view audit logs from the respective sidebar sections.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => document.querySelector('button[data-state="open"]')?.click()}
+              >
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </aside>
   )
