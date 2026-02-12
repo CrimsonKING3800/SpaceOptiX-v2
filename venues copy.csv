@@ -1,0 +1,4 @@
+name,type,building,floor,capacity,description,amenities
+Lecture Hall A-191,classroom,Academic Block D,1,120,Main lecture hall,"Projector,AC,Whiteboard,Microphone"
+Computer Lab 395,lab,ITI Block,3,40,Programming lab,"Computers,AC,WiFi"
+Main Auditorium 2,auditorium,Central Complex,0,500,Events venue,"Stage,Sound system,Projector"

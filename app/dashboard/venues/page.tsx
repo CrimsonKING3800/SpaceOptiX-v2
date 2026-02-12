@@ -1,7 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import useSWR, { mutate } from "swr"
+import Papa from "papaparse" // for parsing CSV
+import { Upload } from "lucide-react" // icon for upload
+
+import { useState, useRef } from "react"
+import useSWR from "swr"
 import { useAuth } from "@/lib/auth-context"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Card, CardContent } from "@/components/ui/card"
@@ -39,10 +42,12 @@ const venueTypeLabels: Record<VenueType, string> = {
 export default function VenuesPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === "admin"
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [addOpen, setAddOpen] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
+  const [uploadLoading, setUploadLoading] = useState(false)
   const [newVenue, setNewVenue] = useState({
     name: "",
     type: "",
@@ -53,7 +58,10 @@ export default function VenuesPage() {
     amenities: "",
   })
 
-  const { data } = useSWR("/api/venues", fetcher)
+  const { data, mutate: mutateSWR } = useSWR("/api/venues", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+  })
   const venues: Venue[] = data?.venues || []
 
   const handleAddVenue = async () => {
@@ -73,9 +81,9 @@ export default function VenuesPage() {
       })
       if (res.ok) {
         toast.success("Venue added successfully")
-        mutate("/api/venues")
         setAddOpen(false)
         setNewVenue({ name: "", type: "", building: "", floor: "1", capacity: "30", description: "", amenities: "" })
+        await mutateSWR()
       } else {
         toast.error("Failed to add venue")
       }
@@ -94,6 +102,74 @@ export default function VenuesPage() {
     return matchesSearch && matchesType
   })
 
+const handleButtonClick = () => {
+  fileInputRef.current?.click()
+}
+
+const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  setUploadLoading(true)
+
+  Papa.parse(file, {
+    header: true, // assumes first row is headers like "name,type,building,floor,capacity,description,amenities"
+    skipEmptyLines: true,
+    dynamicTyping: false,
+    complete: async (results) => {
+      if (results.errors.length > 0) {
+        toast.error(`CSV parsing error: ${results.errors[0].message}`)
+        setUploadLoading(false)
+        return
+      }
+
+      const venues = results.data
+        .filter((row: any) => row.name && row.type && row.building) // Validate required fields
+        .map((row: any) => ({
+          name: row.name.trim(),
+          type: row.type.trim(),
+          building: row.building.trim(),
+          floor: String(row.floor || "1").trim(),
+          capacity: String(row.capacity || "30").trim(),
+          description: (row.description || "").trim(),
+          amenities: row.amenities ? row.amenities.split(",").map((a: string) => a.trim()).filter(Boolean) : [],
+        }))
+
+      if (venues.length === 0) {
+        toast.error("No valid venues found in CSV")
+        setUploadLoading(false)
+        return
+      }
+
+      try {
+        const res = await fetch("/api/venues/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ venues }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          toast.success(`Added ${data.inserted || venues.length} venues successfully`)
+          // Reset file input
+          e.target.value = ""
+          // Refresh the venues list in real-time
+          await mutateSWR()
+        } else {
+          toast.error(data.error || "Failed to add some venues")
+        }
+      } catch (err) {
+        console.error("Upload error:", err)
+        toast.error("Network error during upload")
+      } finally {
+        setUploadLoading(false)
+      }
+    },
+    error: (error: any) => {
+      toast.error(`Failed to parse CSV: ${error.message}`)
+      setUploadLoading(false)
+    },
+  })
+}
   return (
     <div>
       <DashboardHeader
@@ -126,6 +202,25 @@ export default function VenuesPage() {
             </SelectContent>
           </Select>
           {isAdmin && (
+            <div className="flex items-center gap-3">
+            {/* Upload CSV button */}
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              disabled={uploadLoading}
+              onClick={handleButtonClick}
+            >
+              <Upload className="h-4 w-4" />
+              {uploadLoading ? "Uploading..." : "Upload CSV"}
+            </Button>
+            <Input
+              ref={fileInputRef}
+              id="venue-upload"
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="sr-only"
+            />
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
@@ -216,7 +311,8 @@ export default function VenuesPage() {
                   </Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
+          </Dialog>
+          </div>
           )}
         </div>
 
