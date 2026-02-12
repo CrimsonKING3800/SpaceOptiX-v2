@@ -1,5 +1,12 @@
 "use client"
-
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import useSWR from "swr"
+import { formatDistanceToNow } from "date-fns"
+import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Bell } from "lucide-react"
@@ -24,7 +31,14 @@ export function DashboardHeader({ title, description }: { title: string; descrip
     .join("")
     .toUpperCase()
     .slice(0, 2) || "U"
+const fetcher = (url: string) => fetch(url).then(res => res.json())
 
+const { data, mutate } = useSWR("/api/notifications", fetcher, {
+  refreshInterval: 30000, // auto refresh every 30s
+})
+
+const notifications = data?.notifications || []
+const unreadCount = data?.unreadCount || 0
   return (
     <header className="flex items-center justify-between border-b border-border bg-card px-6 py-4">
       <div>
@@ -34,12 +48,71 @@ export function DashboardHeader({ title, description }: { title: string; descrip
 
       <div className="flex items-center gap-3">
         {/* Notification Bell */}
-        <Button variant="outline" size="icon" className="relative bg-transparent">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
-            3
-          </span>
-        </Button>
+        <Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline" size="icon" className="relative bg-transparent">
+      <Bell className="h-4 w-4" />
+      {unreadCount > 0 && (
+        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </Button>
+  </PopoverTrigger>
+
+  <PopoverContent className="w-80 p-0" align="end">
+    <div className="border-b px-4 py-3">
+      <h3 className="font-medium">Notifications</h3>
+    </div>
+
+    {notifications.length === 0 ? (
+      <div className="py-10 text-center text-sm text-muted-foreground">
+        No new notifications
+      </div>
+    ) : (
+      <div className="max-h-[380px] overflow-y-auto">
+        {notifications.map((notif: any) => (
+          <div
+            key={notif.id}
+            className={cn(
+              "border-b px-4 py-3 hover:bg-muted/50 cursor-pointer",
+              !notif.read && "bg-muted/30"
+            )}
+            onClick={async () => {
+              if (!notif.read) {
+                await fetch("/api/notifications", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: notif.id }),
+                })
+                mutate() // refresh
+              }
+              if (notif.link) {
+                window.location.href = notif.link
+              }
+            }}
+          >
+            <p className="font-medium text-sm">{notif.title}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{notif.message}</p>
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {notifications.length > 0 && (
+  <div className="p-3 border-t text-center">
+    <Button variant="ghost" size="sm" asChild>
+      <Link href="/dashboard/bookings">
+        View all
+      </Link>
+    </Button>
+  </div>
+)}
+  </PopoverContent>
+</Popover>
 
         {/* User Avatar → Dropdown Menu */}
         <DropdownMenu>

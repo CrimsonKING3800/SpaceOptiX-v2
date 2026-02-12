@@ -57,7 +57,8 @@ export function DashboardSidebar() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
-
+  // const [collapsed, setCollapsed] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)   
   if (!user) return null
 
   const items = navItems[user.role] || navItems.student
