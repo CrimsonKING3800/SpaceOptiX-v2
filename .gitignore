@@ -11,3 +11,8 @@ node_modules/
 .next/
 .env*.local
 .DS_Store
+Planning/
+.vs/
+.vscode/
+tsconfig.tsbuildinfo
+.0node_modules/

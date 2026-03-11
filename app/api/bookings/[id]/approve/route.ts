@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import * as bookingController from "@/lib/controllers/booking.controller";
+import * as approvalController from "@/lib/controllers/approval.controller";
 
-export async function PATCH(
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -11,17 +11,20 @@ export async function PATCH(
     if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+    if (user.role !== "professor" && user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
     const { id } = await params;
     const body = await request.json();
-
-    return await bookingController.updateBooking({
-      user: { userId: user.userId, role: user.role },
-      bookingId: id,
+    return await approvalController.approveBooking(
+      id,
+      user.userId,
+      user.role,
       body,
-    });
+    );
   } catch (error) {
-    console.error("Booking update error:", error);
+    console.error("Booking approval error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

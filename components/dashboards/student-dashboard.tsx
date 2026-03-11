@@ -1,35 +1,49 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { CalendarDays, Clock, Building2, CheckCircle2, XCircle, Loader2 } from "lucide-react"
-import Link from "next/link"
-import type { Booking } from "@/lib/types"
+import useSWR from "swr";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  CalendarDays,
+  Clock,
+  Building2,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from "lucide-react";
+import Link from "next/link";
+import type { Booking } from "@/lib/types";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-  pending: { variant: "secondary", label: "Pending" },
+const statusConfig: Record<
+  string,
+  {
+    variant: "default" | "secondary" | "destructive" | "outline";
+    label: string;
+  }
+> = {
+  draft: { variant: "outline", label: "Draft" },
+  pending_professor: { variant: "secondary", label: "Pending (Prof)" },
+  pending_admin: { variant: "secondary", label: "Pending (Admin)" },
   approved: { variant: "default", label: "Approved" },
-  "auto-approved": { variant: "default", label: "Approved" },
   rejected: { variant: "destructive", label: "Rejected" },
   cancelled: { variant: "outline", label: "Cancelled" },
-}
+};
 
 export function StudentDashboard() {
-  const { data: statsData } = useSWR("/api/dashboard/stats", fetcher)
-  const { data: bookingsData } = useSWR("/api/bookings?limit=5", fetcher)
+  const { data: statsData } = useSWR("/api/dashboard/stats", fetcher);
+  const { data: bookingsData } = useSWR("/api/bookings?limit=5", fetcher);
 
   const stats = statsData || {
     total_bookings: 0,
     pending_bookings: 0,
     approved_bookings: 0,
     upcoming_bookings: 0,
-  }
+  };
 
-  const recentBookings: Booking[] = bookingsData?.bookings || []
+  const recentBookings: Booking[] = bookingsData?.bookings || [];
 
   return (
     <div className="space-y-6">
@@ -41,7 +55,9 @@ export function StudentDashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Bookings</p>
-              <p className="font-heading text-2xl font-bold text-foreground">{stats.total_bookings}</p>
+              <p className="font-heading text-2xl font-bold text-foreground">
+                {stats.total_bookings}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -52,7 +68,9 @@ export function StudentDashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="font-heading text-2xl font-bold text-foreground">{stats.pending_bookings}</p>
+              <p className="font-heading text-2xl font-bold text-foreground">
+                {stats.pending_bookings}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -63,7 +81,9 @@ export function StudentDashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Approved</p>
-              <p className="font-heading text-2xl font-bold text-foreground">{stats.approved_bookings}</p>
+              <p className="font-heading text-2xl font-bold text-foreground">
+                {stats.approved_bookings}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -74,7 +94,9 @@ export function StudentDashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Upcoming</p>
-              <p className="font-heading text-2xl font-bold text-foreground">{stats.upcoming_bookings}</p>
+              <p className="font-heading text-2xl font-bold text-foreground">
+                {stats.upcoming_bookings}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -83,7 +105,9 @@ export function StudentDashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-heading text-lg">Recent Bookings</CardTitle>
+            <CardTitle className="font-heading text-lg">
+              Recent Bookings
+            </CardTitle>
             <Button variant="outline" size="sm" asChild>
               <Link href="/dashboard/bookings">View All</Link>
             </Button>
@@ -100,7 +124,9 @@ export function StudentDashboard() {
             ) : (
               <div className="space-y-3">
                 {recentBookings.map((booking) => {
-                  const cfg = statusConfig[booking.status] || statusConfig.pending
+                  const cfg =
+                    statusConfig[booking.status] ||
+                    statusConfig.pending_professor;
                   return (
                     <div
                       key={booking._id}
@@ -111,15 +137,26 @@ export function StudentDashboard() {
                           <Building2 className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-foreground">{booking.title}</p>
+                          <p className="text-sm font-medium text-foreground">
+                            {booking.title}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {booking.date} | {booking.start_time} - {booking.end_time}
+                            {new Date(booking.startAt).toLocaleDateString()} |{" "}
+                            {new Date(booking.startAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            -{" "}
+                            {new Date(booking.endAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </p>
                         </div>
                       </div>
                       <Badge variant={cfg.variant}>{cfg.label}</Badge>
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -128,7 +165,9 @@ export function StudentDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Quick Actions</CardTitle>
+            <CardTitle className="font-heading text-lg">
+              Quick Actions
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button className="w-full justify-start gap-2" asChild>
@@ -137,13 +176,21 @@ export function StudentDashboard() {
                 Book a Venue
               </Link>
             </Button>
-            <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 bg-transparent"
+              asChild
+            >
               <Link href="/dashboard/venues">
                 <CalendarDays className="h-4 w-4" />
                 Explore Venues
               </Link>
             </Button>
-            <Button variant="outline" className="w-full justify-start gap-2 bg-transparent" asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 bg-transparent"
+              asChild
+            >
               <Link href="/dashboard/bookings">
                 <Clock className="h-4 w-4" />
                 View My Bookings
@@ -153,5 +200,5 @@ export function StudentDashboard() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
