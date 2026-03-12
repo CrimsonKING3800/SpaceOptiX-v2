@@ -1,60 +1,81 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import useSWR from "swr"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Building2, CalendarDays, Clock, Users, CheckCircle2, ArrowLeft, ArrowRight } from "lucide-react"
-import { toast } from "sonner"
-import type { Venue } from "@/lib/types"
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import useSWR from "swr";
+import { DashboardHeader } from "@/components/dashboard-header";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Building2,
+  CalendarDays,
+  Clock,
+  Users,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
+import { toast } from "sonner";
+import type { Venue } from "@/lib/types";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function BookVenuePage() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const preselectedVenue = searchParams.get("venue")
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const preselectedVenue = searchParams.get("venue");
 
-  const [step, setStep] = useState(1)
-  const [selectedVenueId, setSelectedVenueId] = useState(preselectedVenue || "")
-  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState(1);
+  const [selectedVenueId, setSelectedVenueId] = useState(
+    preselectedVenue || "",
+  );
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
-    date: "",
-    start_time: "",
-    end_time: "",
+    startAt: "",
+    endAt: "",
     attendees_count: "",
     purpose: "",
-  })
+  });
 
-  const { data: venuesData } = useSWR("/api/venues", fetcher)
-  const venues: Venue[] = venuesData?.venues || []
-  const selectedVenue = venues.find((v) => v._id === selectedVenueId)
+  const { data: venuesData } = useSWR("/api/venues", fetcher);
+  const venues: Venue[] = venuesData?.venues || [];
+  const selectedVenue = venues.find((v) => v._id === selectedVenueId);
 
   useEffect(() => {
     if (preselectedVenue) {
-      setStep(2)
+      setStep(2);
     }
-  }, [preselectedVenue])
+  }, [preselectedVenue]);
 
   const updateForm = (key: string, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
-  }
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSubmit = async () => {
     if (!selectedVenueId) {
-      toast.error("Please select a venue")
-      return
+      toast.error("Please select a venue");
+      return;
     }
-    setLoading(true)
+    setLoading(true);
     try {
       const res = await fetch("/api/bookings", {
         method: "POST",
@@ -64,24 +85,27 @@ export default function BookVenuePage() {
           ...form,
           attendees_count: parseInt(form.attendees_count) || 1,
         }),
-      })
+      });
       if (res.ok) {
-        toast.success("Booking submitted successfully!")
-        router.push("/dashboard/bookings")
+        toast.success("Booking created as draft!");
+        router.push("/dashboard/bookings");
       } else {
-        const data = await res.json()
-        toast.error(data.error || "Failed to create booking")
+        const data = await res.json();
+        toast.error(data.error || "Failed to create booking");
       }
     } catch {
-      toast.error("Network error")
+      toast.error("Network error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div>
-      <DashboardHeader title="Book a Venue" description="Reserve a campus space in 3 simple steps" />
+      <DashboardHeader
+        title="Book a Venue"
+        description="Reserve a campus space in 3 simple steps"
+      />
       <div className="p-6">
         <div className="mx-auto max-w-3xl">
           {/* Step indicator */}
@@ -118,11 +142,15 @@ export default function BookVenuePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="font-heading">Select a Venue</CardTitle>
-                <CardDescription>Choose the space you want to book</CardDescription>
+                <CardDescription>
+                  Choose the space you want to book
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {venues.length === 0 ? (
-                  <p className="py-8 text-center text-muted-foreground">No venues available</p>
+                  <p className="py-8 text-center text-muted-foreground">
+                    No venues available
+                  </p>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     {venues.map((venue) => (
@@ -140,7 +168,9 @@ export default function BookVenuePage() {
                           <Building2 className="h-5 w-5 text-primary" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">{venue.name}</p>
+                          <p className="text-sm font-medium text-foreground">
+                            {venue.name}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {venue.building} | Capacity: {venue.capacity}
                           </p>
@@ -150,7 +180,11 @@ export default function BookVenuePage() {
                   </div>
                 )}
                 <div className="mt-6 flex justify-end">
-                  <Button disabled={!selectedVenueId} onClick={() => setStep(2)} className="gap-2">
+                  <Button
+                    disabled={!selectedVenueId}
+                    onClick={() => setStep(2)}
+                    className="gap-2"
+                  >
                     Next Step
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -196,32 +230,22 @@ export default function BookVenuePage() {
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
+                    <Label htmlFor="startAt">Start Date & Time</Label>
                     <Input
-                      id="date"
-                      type="date"
-                      value={form.date}
-                      onChange={(e) => updateForm("date", e.target.value)}
+                      id="startAt"
+                      type="datetime-local"
+                      value={form.startAt}
+                      onChange={(e) => updateForm("startAt", e.target.value)}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="start_time">Start Time</Label>
+                    <Label htmlFor="endAt">End Date & Time</Label>
                     <Input
-                      id="start_time"
-                      type="time"
-                      value={form.start_time}
-                      onChange={(e) => updateForm("start_time", e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end_time">End Time</Label>
-                    <Input
-                      id="end_time"
-                      type="time"
-                      value={form.end_time}
-                      onChange={(e) => updateForm("end_time", e.target.value)}
+                      id="endAt"
+                      type="datetime-local"
+                      value={form.endAt}
+                      onChange={(e) => updateForm("endAt", e.target.value)}
                       required
                     />
                   </div>
@@ -234,14 +258,19 @@ export default function BookVenuePage() {
                       type="number"
                       placeholder="e.g. 30"
                       value={form.attendees_count}
-                      onChange={(e) => updateForm("attendees_count", e.target.value)}
+                      onChange={(e) =>
+                        updateForm("attendees_count", e.target.value)
+                      }
                       min={1}
                       required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Purpose</Label>
-                    <Select value={form.purpose} onValueChange={(v) => updateForm("purpose", v)}>
+                    <Select
+                      value={form.purpose}
+                      onValueChange={(v) => updateForm("purpose", v)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select purpose" />
                       </SelectTrigger>
@@ -258,13 +287,22 @@ export default function BookVenuePage() {
                   </div>
                 </div>
                 <div className="flex justify-between pt-4">
-                  <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="gap-2"
+                  >
                     <ArrowLeft className="h-4 w-4" />
                     Back
                   </Button>
                   <Button
                     onClick={() => setStep(3)}
-                    disabled={!form.title || !form.date || !form.start_time || !form.end_time || !form.purpose}
+                    disabled={
+                      !form.title ||
+                      !form.startAt ||
+                      !form.endAt ||
+                      !form.purpose
+                    }
                     className="gap-2"
                   >
                     Review
@@ -280,7 +318,9 @@ export default function BookVenuePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="font-heading">Confirm Booking</CardTitle>
-                <CardDescription>Review your booking details before submitting</CardDescription>
+                <CardDescription>
+                  Review your booking details before submitting
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border border-border bg-muted/30 p-5">
@@ -289,46 +329,81 @@ export default function BookVenuePage() {
                       <Building2 className="h-5 w-5 text-primary" />
                       <div>
                         <p className="text-xs text-muted-foreground">Venue</p>
-                        <p className="font-medium text-foreground">{selectedVenue?.name || "N/A"}</p>
+                        <p className="font-medium text-foreground">
+                          {selectedVenue?.name || "N/A"}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <CalendarDays className="h-5 w-5 text-primary" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Date & Time</p>
+                        <p className="text-xs text-muted-foreground">Start</p>
                         <p className="font-medium text-foreground">
-                          {form.date} | {form.start_time} - {form.end_time}
+                          {form.startAt
+                            ? new Date(form.startAt).toLocaleString()
+                            : "N/A"}
+                          <div className="flex items-center gap-3">
+                            <Clock className="h-5 w-5 text-primary" />
+                            <div>
+                              <p className="text-xs text-muted-foreground">
+                                End
+                              </p>
+                              <p className="font-medium text-foreground">
+                                {form.endAt
+                                  ? new Date(form.endAt).toLocaleString()
+                                  : "N/A"}
+                              </p>
+                            </div>
+                          </div>
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Users className="h-5 w-5 text-primary" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Attendees</p>
-                        <p className="font-medium text-foreground">{form.attendees_count}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Attendees
+                        </p>
+                        <p className="font-medium text-foreground">
+                          {form.attendees_count}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Clock className="h-5 w-5 text-primary" />
                       <div>
                         <p className="text-xs text-muted-foreground">Purpose</p>
-                        <p className="font-medium capitalize text-foreground">{form.purpose.replace("_", " ")}</p>
+                        <p className="font-medium capitalize text-foreground">
+                          {form.purpose.replace("_", " ")}
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="mt-4 border-t border-border pt-4">
-                    <p className="text-sm font-medium text-foreground">{form.title}</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {form.title}
+                    </p>
                     {form.description && (
-                      <p className="mt-1 text-sm text-muted-foreground">{form.description}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {form.description}
+                      </p>
                     )}
                   </div>
                 </div>
                 <div className="mt-6 flex justify-between">
-                  <Button variant="outline" onClick={() => setStep(2)} className="gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(2)}
+                    className="gap-2"
+                  >
                     <ArrowLeft className="h-4 w-4" />
                     Back
                   </Button>
-                  <Button onClick={handleSubmit} disabled={loading} className="gap-2">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="gap-2"
+                  >
                     {loading ? "Submitting..." : "Submit Booking"}
                     <CheckCircle2 className="h-4 w-4" />
                   </Button>
@@ -339,5 +414,5 @@ export default function BookVenuePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
