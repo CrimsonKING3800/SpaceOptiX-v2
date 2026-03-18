@@ -39,8 +39,12 @@ export async function getApprovalsQueue(
 
   const { limit = 50 } = filters;
 
-  // Query bookings in pending_professor (for both professor/admin) or pending_admin (for admin only)
-  const statusQuery: BookingStatus[] = ["pending_professor"];
+  // Query bookings that require action from the current user.
+  // Professors should see only pending_professor items; admins only pending_admin.
+  const statusQuery: BookingStatus[] = [];
+  if (userRole === "professor") {
+    statusQuery.push("pending_professor");
+  }
   if (userRole === "admin") {
     statusQuery.push("pending_admin");
   }
@@ -120,8 +124,22 @@ export async function decideApproval(
       "Professor can only approve bookings in pending_professor status",
     );
   }
-  if (userRole === "admin" && bookingStatus !== "pending_admin") {
-    throw new Error("Admin can only approve bookings in pending_admin status");
+  if (userRole === "admin") {
+    if (bookingStatus !== "pending_admin") {
+      throw new Error("Admin can only approve bookings in pending_admin status");
+    }
+
+    // make sure a professor has actually approved earlier
+    const profApproval = await db.collection("approvals").findOne({
+      booking_id: bookingId,
+      stage: "professor",
+      status: "approved",
+    });
+    if (!profApproval) {
+      throw new Error(
+        "Admin cannot approve a request before a professor has approved it",
+      );
+    }
   }
 
   const now = new Date().toISOString();

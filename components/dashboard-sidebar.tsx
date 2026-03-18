@@ -45,7 +45,7 @@ const navItems = {
   admin: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/venues", label: "Venue Management", icon: Building2 },
-    { href: "/dashboard/bookings", label: "All Bookings", icon: CalendarDays },
+    // bookings link removed for admins since it's not relevant as a personal view
     { href: "/dashboard/approvals", label: "Approvals", icon: ClipboardCheck },
     { href: "/dashboard/users", label: "User Management", icon: Users },
     { href: "/dashboard/audit", label: "Audit Logs", icon: ScrollText },

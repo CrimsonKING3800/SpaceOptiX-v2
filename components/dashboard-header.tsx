@@ -102,7 +102,7 @@ const unreadCount = data?.unreadCount || 0
       </div>
     )}
 
-    {notifications.length > 0 && (
+    {notifications.length > 0 && user?.role !== "admin" && (
   <div className="p-3 border-t text-center">
     <Button variant="ghost" size="sm" asChild>
       <Link href="/dashboard/bookings">

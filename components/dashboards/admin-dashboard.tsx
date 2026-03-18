@@ -17,6 +17,22 @@ import {
 import Link from "next/link";
 import type { Booking } from "@/lib/types";
 
+// reuse same status configuration used elsewhere for consistency
+const statusConfig: Record<
+  string,
+  {
+    variant: "default" | "secondary" | "destructive" | "outline";
+    label: string;
+  }
+> = {
+  draft: { variant: "outline", label: "Draft" },
+  pending_professor: { variant: "secondary", label: "Pending (Prof)" },
+  pending_admin: { variant: "secondary", label: "Pending (Admin)" },
+  approved: { variant: "default", label: "Approved" },
+  rejected: { variant: "destructive", label: "Rejected" },
+  cancelled: { variant: "outline", label: "Cancelled" },
+};
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function AdminDashboard() {
@@ -137,42 +153,43 @@ export function AdminDashboard() {
               </p>
             ) : (
               <div className="space-y-3">
-                {recentBookings.map((booking) => (
-                  <div
-                    key={booking._id}
-                    className="flex items-center justify-between rounded-lg border border-border p-4"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {booking.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {booking.requester?.name || "User"} |{" "}
-                        {new Date(booking.startAt).toLocaleDateString()} |{" "}
-                        {new Date(booking.startAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        -{" "}
-                        {new Date(booking.endAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        booking.status === "approved"
-                          ? "default"
-                          : booking.status === "rejected"
-                            ? "destructive"
-                            : "secondary"
-                      }
+                {recentBookings.map((booking) => {
+                  const cfg = statusConfig[booking.status] || {
+                    variant: "secondary",
+                    label: booking.status.replace(/_/g, " "),
+                  };
+                  return (
+                    <div
+                      key={booking._id}
+                      className="flex items-center justify-between rounded-lg border border-border p-4"
                     >
-                      {booking.status}
-                    </Badge>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                          <Building2 className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {booking.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {booking.requester?.name || "User"} | {new Date(
+                            booking.startAt,
+                          ).toLocaleDateString()} | {new Date(
+                            booking.startAt,
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}- {new Date(booking.endAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={cfg.variant}>{cfg.label}</Badge>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>

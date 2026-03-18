@@ -190,12 +190,11 @@ export async function createBooking(
   }
 
   // Determine initial status based on role
-  // Students: pending_professor (new schema) or draft (legacy)
-  // Professor/Admin: approved (auto-approved now becomes approved)
-  const autoApprove = userRole === "professor" || userRole === "admin";
-  const initialStatus: BookingStatus = autoApprove
-    ? "approved"
-    : "pending_professor";
+  // All new submissions must start at the professor stage.
+  // Professors creating a booking are considered to have approved it immediately,
+  // but the booking still advances to the admin queue so the professor sign‑off is
+  // recorded and the admin cannot bypass the workflow.
+  const initialStatus: BookingStatus = "pending_professor";
 
   const now = new Date().toISOString();
 
@@ -221,22 +220,63 @@ export async function createBooking(
   };
 
   const result = await db.collection("bookings").insertOne(bookingDoc);
+  const bookingId = result.insertedId.toString();
 
-  // Log audit entry
+  // If the creator is a professor we automatically record their approval
+  // and advance the status to pending_admin so the admin stage can occur.
+  if (userRole === "professor") {
+    const approvalRecord = {
+      booking_id: bookingId,
+      approver_id: userId,
+      stage: "professor" as const,
+      status: "approved" as const,
+      comments: "Auto-approved by creator",
+      decided_at: now,
+      created_at: now,
+      updated_at: now,
+    };
+    await db.collection("approvals").insertOne(approvalRecord);
+
+    // update booking status
+    await db
+      .collection("bookings")
+      .updateOne(
+        { _id: result.insertedId },
+        { $set: { status: "pending_admin", updated_at: now } },
+      );
+
+    // audit logs for professor approval and status change
+    await auditService.logAction({
+      userId,
+      action: "approval_professor_approved",
+      entityType: "booking",
+      entityId: bookingId,
+      details: {
+        approver_role: "professor",
+        stage: "professor",
+        decision: "approved",
+        comments: "Auto-approved by creator",
+        new_booking_status: "pending_admin",
+      },
+      timestamp: now,
+    });
+  }
+
+  // Log booking creation audit entry (status may have been updated above)
   await auditService.logAction({
     userId: userId,
     action: "booking_created",
     entityType: "booking",
-    entityId: result.insertedId.toString(),
+    entityId: bookingId,
     details: {
       title: input.title,
       venue_id: input.venue_id,
-      status: initialStatus,
+      status: userRole === "professor" ? "pending_admin" : initialStatus,
     },
     timestamp: now,
   });
 
-  return result.insertedId.toString();
+  return bookingId;
 }
 
 /**
@@ -264,13 +304,23 @@ export async function updateBooking(
     throw new Error("Booking not found");
   }
 
-  // Only owner or admin can modify
+  // Only owner or admin can modify general fields
   const isOwner =
     (booking.requester_id && booking.requester_id === userId) ||
     (booking.user_id && booking.user_id === userId);
 
   if (!isOwner && userRole !== "admin") {
     throw new Error("Unauthorized: only owner or admin can modify");
+  }
+
+  // Admins should not be allowed to bypass the approval workflow by setting
+  // status manually; they must use the approval endpoints instead. If an
+  // admin really needs to change the status (e.g. to cancel) there are dedicated
+  // helpers for that.
+  if (updates.status && userRole === "admin") {
+    throw new Error(
+      "Unauthorized: admin cannot change booking status directly; use approval or cancel endpoints",
+    );
   }
 
   const now = new Date().toISOString();

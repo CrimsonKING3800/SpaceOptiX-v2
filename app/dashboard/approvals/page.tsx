@@ -192,7 +192,7 @@ export default function ApprovalsPage() {
                           )}
                         </div>
                       </div>
-                      {(booking.status === "pending_professor" ||
+                      {((booking.status === "pending_professor" && !isAdmin) ||
                         booking.status === "pending_admin") && (
                         <div className="flex gap-2">
                           <Button
