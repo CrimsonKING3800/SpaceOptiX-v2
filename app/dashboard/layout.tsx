@@ -1,21 +1,26 @@
-"use client"
+"use client";
 
-import React from "react"
+import React from "react";
 
-import { useAuth } from "@/lib/auth-context"
-import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useAuth } from "@/lib/auth-context";
+import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { DashboardAiHelper } from "@/components/dashboard-ai-helper";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  const router = useRouter()
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [user, loading, router])
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -25,15 +30,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="text-sm text-muted-foreground">Loading SpaceOptiX...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  if (!user) return null
+  if (!user) return null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="relative flex-1 overflow-y-auto">
+        {children}
+        <DashboardAiHelper />
+      </main>
     </div>
-  )
+  );
 }
