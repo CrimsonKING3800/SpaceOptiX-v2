@@ -37,6 +37,10 @@ export default function RegisterPage() {
       toast.error("Please select a role")
       return
     }
+    if (!form.email.toLowerCase().endsWith(".iitkgp.ac.in")) {
+      toast.error("Only IIT Kharagpur emails (@*.iitkgp.ac.in) are allowed")
+      return
+    }
     setLoading(true)
     const result = await register({
       ...form,
@@ -89,7 +93,7 @@ export default function RegisterPage() {
                 <Input
                   id="reg-email"
                   type="email"
-                  placeholder="you@university.edu"
+                  placeholder="you@kgpian.iitkgp.ac.in"
                   value={form.email}
                   onChange={(e) => updateForm("email", e.target.value)}
                   required

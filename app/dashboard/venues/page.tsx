@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import useSWR, { mutate } from "swr"
 import { useAuth } from "@/lib/auth-context"
 import { DashboardHeader } from "@/components/dashboard-header"
@@ -20,7 +20,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Building2, Users, MapPin, Search, Clock, Plus } from "lucide-react"
+import { Building2, Users, MapPin, Search, Clock, Plus, Upload, FileSpreadsheet, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import type { Venue, VenueType } from "@/lib/types"
@@ -43,6 +43,11 @@ export default function VenuesPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [addOpen, setAddOpen] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importLoading, setImportLoading] = useState(false)
+  const [importResult, setImportResult] = useState<{ imported?: number; errors?: string[] } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [newVenue, setNewVenue] = useState({
     name: "",
     type: "",
@@ -86,6 +91,38 @@ export default function VenuesPage() {
     }
   }
 
+  const handleImportCSV = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a CSV file")
+      return
+    }
+    setImportLoading(true)
+    setImportResult(null)
+    try {
+      const formData = new FormData()
+      formData.append("file", selectedFile)
+      const res = await fetch("/api/venues/import", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setImportResult({ imported: data.imported, errors: data.errors })
+        toast.success(`Successfully imported ${data.imported} venue(s)`)
+        mutate("/api/venues")
+        setSelectedFile(null)
+        if (fileInputRef.current) fileInputRef.current.value = ""
+      } else {
+        setImportResult({ errors: data.errors || [data.error] })
+        toast.error(data.error || "Import failed")
+      }
+    } catch {
+      toast.error("Network error")
+    } finally {
+      setImportLoading(false)
+    }
+  }
+
   const filteredVenues = venues.filter((v) => {
     const matchesSearch =
       v.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -126,97 +163,194 @@ export default function VenuesPage() {
             </SelectContent>
           </Select>
           {isAdmin && (
-            <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Venue
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="font-heading">Add New Venue</DialogTitle>
-                  <DialogDescription>Create a new venue for campus booking.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div className="space-y-2">
-                    <Label>Venue Name</Label>
-                    <Input
-                      placeholder="e.g. Lecture Hall C"
-                      value={newVenue.name}
-                      onChange={(e) => setNewVenue({ ...newVenue, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Type</Label>
-                      <Select value={newVenue.type} onValueChange={(v) => setNewVenue({ ...newVenue, type: v })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="classroom">Classroom</SelectItem>
-                          <SelectItem value="lab">Lab</SelectItem>
-                          <SelectItem value="auditorium">Auditorium</SelectItem>
-                          <SelectItem value="conference_room">Conference Room</SelectItem>
-                          <SelectItem value="sports_facility">Sports Facility</SelectItem>
-                          <SelectItem value="open_area">Open Area</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Building</Label>
-                      <Input
-                        placeholder="e.g. Main Building"
-                        value={newVenue.building}
-                        onChange={(e) => setNewVenue({ ...newVenue, building: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Floor</Label>
-                      <Input
-                        type="number"
-                        value={newVenue.floor}
-                        onChange={(e) => setNewVenue({ ...newVenue, floor: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Capacity</Label>
-                      <Input
-                        type="number"
-                        value={newVenue.capacity}
-                        onChange={(e) => setNewVenue({ ...newVenue, capacity: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Amenities (comma separated)</Label>
-                    <Input
-                      placeholder="e.g. Projector, AC, Whiteboard"
-                      value={newVenue.amenities}
-                      onChange={(e) => setNewVenue({ ...newVenue, amenities: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea
-                      placeholder="Brief description..."
-                      value={newVenue.description}
-                      onChange={(e) => setNewVenue({ ...newVenue, description: e.target.value })}
-                      rows={2}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-                  <Button onClick={handleAddVenue} disabled={addLoading}>
-                    {addLoading ? "Adding..." : "Add Venue"}
+            <div className="flex gap-2">
+              <Dialog open={addOpen} onOpenChange={setAddOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Venue
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading">Add New Venue</DialogTitle>
+                    <DialogDescription>Create a new venue for campus booking.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <Label>Venue Name</Label>
+                      <Input
+                        placeholder="e.g. Lecture Hall C"
+                        value={newVenue.name}
+                        onChange={(e) => setNewVenue({ ...newVenue, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Type</Label>
+                        <Select value={newVenue.type} onValueChange={(v) => setNewVenue({ ...newVenue, type: v })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="classroom">Classroom</SelectItem>
+                            <SelectItem value="lab">Lab</SelectItem>
+                            <SelectItem value="auditorium">Auditorium</SelectItem>
+                            <SelectItem value="conference_room">Conference Room</SelectItem>
+                            <SelectItem value="sports_facility">Sports Facility</SelectItem>
+                            <SelectItem value="open_area">Open Area</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Building</Label>
+                        <Input
+                          placeholder="e.g. Main Building"
+                          value={newVenue.building}
+                          onChange={(e) => setNewVenue({ ...newVenue, building: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Floor</Label>
+                        <Input
+                          type="number"
+                          value={newVenue.floor}
+                          onChange={(e) => setNewVenue({ ...newVenue, floor: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Capacity</Label>
+                        <Input
+                          type="number"
+                          value={newVenue.capacity}
+                          onChange={(e) => setNewVenue({ ...newVenue, capacity: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Amenities (comma separated)</Label>
+                      <Input
+                        placeholder="e.g. Projector, AC, Whiteboard"
+                        value={newVenue.amenities}
+                        onChange={(e) => setNewVenue({ ...newVenue, amenities: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea
+                        placeholder="Brief description..."
+                        value={newVenue.description}
+                        onChange={(e) => setNewVenue({ ...newVenue, description: e.target.value })}
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+                    <Button onClick={handleAddVenue} disabled={addLoading}>
+                      {addLoading ? "Adding..." : "Add Venue"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={importOpen} onOpenChange={(open) => {
+                setImportOpen(open)
+                if (!open) {
+                  setSelectedFile(null)
+                  setImportResult(null)
+                  if (fileInputRef.current) fileInputRef.current.value = ""
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    Import CSV
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading flex items-center gap-2">
+                      <FileSpreadsheet className="h-5 w-5" />
+                      Import Venues from CSV
+                    </DialogTitle>
+                    <DialogDescription>
+                      Upload a CSV file with columns: name, type, building, floor, capacity, amenities (semicolon-separated), description
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <Label>CSV File</Label>
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => {
+                          setSelectedFile(e.target.files?.[0] || null)
+                          setImportResult(null)
+                        }}
+                      />
+                    </div>
+                    {selectedFile && (
+                      <div className="rounded-lg border border-border bg-muted/30 p-3">
+                        <p className="text-sm text-foreground font-medium">{selectedFile.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(selectedFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    )}
+                    <div className="rounded-lg border border-dashed border-border p-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Expected CSV format:</p>
+                      <code className="text-xs text-muted-foreground block">
+                        name,type,building,floor,capacity,amenities,description
+                      </code>
+                      <code className="text-xs text-muted-foreground block">
+                        Lecture Hall A,auditorium,Main Block,1,200,Projector;AC;Mic,Large hall
+                      </code>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Valid types: classroom, lab, auditorium, conference_room, sports_facility, open_area
+                      </p>
+                    </div>
+                    {importResult && (
+                      <div className="space-y-2">
+                        {importResult.imported && importResult.imported > 0 && (
+                          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+                            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                              ✓ Successfully imported {importResult.imported} venue(s)
+                            </p>
+                          </div>
+                        )}
+                        {importResult.errors && importResult.errors.length > 0 && (
+                          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                            <p className="flex items-center gap-1.5 text-sm text-destructive font-medium mb-1">
+                              <AlertCircle className="h-4 w-4" /> Errors:
+                            </p>
+                            <ul className="space-y-0.5">
+                              {importResult.errors.map((err, i) => (
+                                <li key={i} className="text-xs text-destructive/80">{err}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
+                    <Button
+                      onClick={handleImportCSV}
+                      disabled={importLoading || !selectedFile}
+                      className="gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {importLoading ? "Importing..." : "Import"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           )}
         </div>
 

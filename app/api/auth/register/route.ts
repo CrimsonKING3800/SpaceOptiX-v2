@@ -11,6 +11,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Only allow IIT KGP emails
+    if (!email.toLowerCase().endsWith(".iitkgp.ac.in")) {
+      return NextResponse.json(
+        { error: "Only IIT Kharagpur emails (@*.iitkgp.ac.in) are allowed to register" },
+        { status: 400 },
+      )
+    }
+
     const db = await getDb()
     const existing = await db.collection("users").findOne({ email })
     if (existing) {

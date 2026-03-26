@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,112 @@ type UiMessageRole = "user" | "assistant";
 interface UiMessage {
   role: UiMessageRole;
   content: string;
+}
+
+/**
+ * Lightweight markdown renderer for chatbot messages.
+ * Supports: bold, inline code, numbered lists, bullet lists, line breaks.
+ */
+function renderMarkdown(text: string): React.ReactNode {
+  // Split into lines
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let listItems: React.ReactNode[] = [];
+  let listType: "ol" | "ul" | null = null;
+  let olStart = 1;
+
+  function flushList() {
+    if (listType === "ol" && listItems.length > 0) {
+      elements.push(
+        <ol key={`ol-${elements.length}`} start={olStart} className="my-1 ml-4 list-decimal space-y-0.5">
+          {listItems}
+        </ol>,
+      );
+    } else if (listType === "ul" && listItems.length > 0) {
+      elements.push(
+        <ul key={`ul-${elements.length}`} className="my-1 ml-4 list-disc space-y-0.5">
+          {listItems}
+        </ul>,
+      );
+    }
+    listItems = [];
+    listType = null;
+  }
+
+  function formatInline(str: string): React.ReactNode {
+    // Process bold (**text**), inline code (`text`)
+    const parts: React.ReactNode[] = [];
+    const regex = /(\*\*(.+?)\*\*|`([^`]+)`)/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = regex.exec(str)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(str.slice(lastIndex, match.index));
+      }
+      if (match[2]) {
+        // Bold
+        parts.push(<strong key={match.index}>{match[2]}</strong>);
+      } else if (match[3]) {
+        // Inline code
+        parts.push(
+          <code key={match.index} className="rounded bg-background/50 px-1 py-0.5 text-xs font-mono">
+            {match[3]}
+          </code>,
+        );
+      }
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < str.length) {
+      parts.push(str.slice(lastIndex));
+    }
+    return parts.length === 1 ? parts[0] : parts;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Check for numbered list (1. item)
+    const olMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
+    if (olMatch) {
+      if (listType !== "ol") {
+        flushList();
+        listType = "ol";
+        olStart = parseInt(olMatch[1]);
+      }
+      listItems.push(<li key={`li-${i}`}>{formatInline(olMatch[2])}</li>);
+      continue;
+    }
+
+    // Check for bullet list (- item, * item)
+    const ulMatch = trimmed.match(/^[-*]\s+(.+)/);
+    if (ulMatch) {
+      if (listType !== "ul") {
+        flushList();
+        listType = "ul";
+      }
+      listItems.push(<li key={`li-${i}`}>{formatInline(ulMatch[1])}</li>);
+      continue;
+    }
+
+    // Not a list item — flush any open list
+    flushList();
+
+    if (trimmed === "") {
+      // Empty line = spacing
+      elements.push(<div key={`br-${i}`} className="h-1" />);
+    } else {
+      elements.push(
+        <p key={`p-${i}`} className="my-0.5">
+          {formatInline(trimmed)}
+        </p>,
+      );
+    }
+  }
+
+  flushList();
+  return elements;
 }
 
 const MAX_MESSAGES = 16;
@@ -95,7 +201,7 @@ export function DashboardAiHelper() {
           [
             ...prev,
             {
-              role: "assistant",
+              role: "assistant" as const,
               content: errorText,
             },
           ].slice(-MAX_MESSAGES),
@@ -112,7 +218,7 @@ export function DashboardAiHelper() {
         [
           ...prev,
           {
-            role: "assistant",
+            role: "assistant" as const,
             content: assistantText,
           },
         ].slice(-MAX_MESSAGES),
@@ -122,7 +228,7 @@ export function DashboardAiHelper() {
         [
           ...prev,
           {
-            role: "assistant",
+            role: "assistant" as const,
             content: "Network error while contacting chatbot.",
           },
         ].slice(-MAX_MESSAGES),
@@ -176,7 +282,9 @@ export function DashboardAiHelper() {
                           : "bg-muted text-foreground"
                       }`}
                     >
-                      {message.content}
+                      {message.role === "assistant"
+                        ? renderMarkdown(message.content)
+                        : message.content}
                     </div>
                   </div>
                 ))}
