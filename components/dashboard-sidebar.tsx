@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
 import {
@@ -11,7 +11,6 @@ import {
   ClipboardCheck,
   Users,
   ScrollText,
-  LogOut,
   ChevronLeft,
   ChevronRight,
   MapPin,
@@ -45,18 +44,12 @@ const navItems = {
 
 export function DashboardSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
 
   if (!user) return null
 
   const items = navItems[user.role] || navItems.student
-
-  const handleLogout = async () => {
-    await logout()
-    router.push("/")
-  }
 
   return (
     <aside
@@ -109,18 +102,11 @@ export function DashboardSidebar() {
 
       <div className="border-t border-sidebar-border p-3">
         {!collapsed && (
-          <div className="mb-3 rounded-lg bg-sidebar-accent px-3 py-2">
+          <div className="rounded-lg bg-sidebar-accent px-3 py-2">
             <p className="text-xs font-medium text-sidebar-accent-foreground">{user.name}</p>
             <p className="text-xs text-sidebar-foreground/70 capitalize">{user.role}</p>
           </div>
         )}
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-        >
-          <LogOut className="h-5 w-5 shrink-0" />
-          {!collapsed && <span>Sign Out</span>}
-        </button>
       </div>
     </aside>
   )

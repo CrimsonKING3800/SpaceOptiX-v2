@@ -55,6 +55,23 @@ export interface User {
   updated_at: string;
 }
 
+export interface PendingUserVerification {
+  _id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  department: string;
+  phone?: string | null;
+  student_id?: string | null;
+  faculty_id?: string | null;
+  otp_hash: string;
+  otp_expires_at: Date;
+  last_otp_sent_at: Date;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Venue {
   _id: string;
   name: string;

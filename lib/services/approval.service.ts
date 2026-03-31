@@ -10,7 +10,7 @@ import * as auditService from "./audit.service";
 
 export interface ApprovalQueueFilter {
   stage?: ApprovalStage;
-  status?: ApprovalStatus;
+  status?: ApprovalStatus | "all" | "pending" | "pending_professor" | "pending_admin";
   limit?: number;
 }
 
@@ -21,7 +21,7 @@ export interface ApprovalDecision {
 
 /**
  * Get pending/approved/rejected approvals for a professor or admin.
- * For now, returns bookings in the pending_professor or pending_admin status.
+ * Supports filtering by status: pending (default), approved, rejected, all.
  */
 export async function getApprovalsQueue(
   userId: string,
@@ -37,17 +37,24 @@ export async function getApprovalsQueue(
     );
   }
 
-  const { limit = 50 } = filters;
+  const { limit = 50, status } = filters;
 
-  // Query bookings in pending_professor (for both professor/admin) or pending_admin (for admin only)
-  const statusQuery: BookingStatus[] = ["pending_professor"];
-  if (userRole === "admin") {
-    statusQuery.push("pending_admin");
+  const query: Record<string, unknown> = {};
+
+  if (status === "approved") {
+    query.status = "approved";
+  } else if (status === "rejected") {
+    query.status = "rejected";
+  } else if (status === "all") {
+    // No status filter — return all bookings
+  } else {
+    // Default: pending bookings
+    const statusQuery: BookingStatus[] = ["pending_professor"];
+    if (userRole === "admin") {
+      statusQuery.push("pending_admin");
+    }
+    query.status = { $in: statusQuery };
   }
-
-  const query: Record<string, unknown> = {
-    status: { $in: statusQuery },
-  };
 
   const bookings = await db
     .collection("bookings")

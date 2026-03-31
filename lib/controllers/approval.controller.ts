@@ -26,6 +26,7 @@ export async function listApprovals({
       user.userId,
       user.role,
       {
+        status: query.status as any,
         limit: Math.min(parseInt(query.limit || "50"), 500),
       },
     );
