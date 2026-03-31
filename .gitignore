@@ -16,3 +16,6 @@ Planning/
 .vscode/
 tsconfig.tsbuildinfo
 .0node_modules/
+
+# misc
+temp
