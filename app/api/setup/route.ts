@@ -5,7 +5,6 @@ import { getDb } from "@/lib/mongodb";
 const COLLECTIONS_TO_RESET = [
   "bookings",
   "approvals",
-  "blackouts",
   "audit_logs",
   "users",
   "venues",

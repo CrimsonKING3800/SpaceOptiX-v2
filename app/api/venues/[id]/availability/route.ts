@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { checkConflict } from "@/lib/services/conflict.service";
-import { checkBlackoutConflict } from "@/lib/services/blackout.service";
 
 export async function GET(
   request: NextRequest,
@@ -25,15 +24,11 @@ export async function GET(
       );
     }
 
-    const [hasBookingConflict, hasBlackout] = await Promise.all([
-      checkConflict(venueId, startAt, endAt),
-      checkBlackoutConflict(venueId, startAt, endAt),
-    ]);
+    const hasBookingConflict = await checkConflict(venueId, startAt, endAt);
 
     return NextResponse.json({
-      available: !hasBookingConflict && !hasBlackout,
+      available: !hasBookingConflict,
       booking_conflict: hasBookingConflict,
-      blackout_conflict: hasBlackout,
     });
   } catch (error) {
     console.error("Availability check error:", error);
