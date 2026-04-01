@@ -1,38 +1,60 @@
-"use client"
+"use client";
 
-import React from "react"
+import React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, Eye, EyeOff } from "lucide-react"
-import { toast } from "sonner"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Building2, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { login } = useAuth()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const { user, loading: authLoading, login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    const result = await login(email, password)
-    setLoading(false)
+    e.preventDefault();
+    setLoading(true);
+    const result = await login(email, password);
+    setLoading(false);
     if (result.success) {
-      toast.success("Welcome back!")
-      router.push("/dashboard")
+      toast.success("Welcome back!");
+      router.push("/dashboard");
     } else {
-      toast.error(result.error || "Login failed")
+      toast.error(result.error || "Login failed");
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -42,14 +64,20 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               <Building2 className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-heading text-2xl font-bold text-foreground">SpaceOptiX</span>
+            <span className="font-heading text-2xl font-bold text-foreground">
+              SpaceOptiX
+            </span>
           </Link>
         </div>
 
         <Card className="border-border">
           <CardHeader className="text-center">
-            <CardTitle className="font-heading text-2xl">Welcome Back</CardTitle>
-            <CardDescription>Sign in to manage your venue bookings</CardDescription>
+            <CardTitle className="font-heading text-2xl">
+              Welcome Back
+            </CardTitle>
+            <CardDescription>
+              Sign in to manage your venue bookings
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -80,7 +108,11 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -90,7 +122,10 @@ export default function LoginPage() {
             </form>
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {"Don't have an account? "}
-              <Link href="/register" className="font-medium text-primary hover:underline">
+              <Link
+                href="/register"
+                className="font-medium text-primary hover:underline"
+              >
                 Create one
               </Link>
             </p>
@@ -98,5 +133,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
