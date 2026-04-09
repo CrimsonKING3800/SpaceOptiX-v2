@@ -142,7 +142,67 @@ export async function listBookings({
       };
     });
 
-    return NextResponse.json({ bookings: enrichedBookings });
+    // Fetch approvals for all bookings
+    const bookingIds = enrichedBookings
+      .map((b) => b._id as string)
+      .filter(Boolean);
+
+    const db2 = await getDb();
+    const allApprovals =
+      bookingIds.length > 0
+        ? await db2
+            .collection("approvals")
+            .find({ booking_id: { $in: bookingIds } })
+            .sort({ created_at: 1 })
+            .toArray()
+        : [];
+
+    // Also fetch approver user details
+    const approverIds = [
+      ...new Set(allApprovals.map((a) => a.approver_id as string).filter(Boolean)),
+    ];
+    const approverUsers =
+      approverIds.length > 0
+        ? await db2
+            .collection("users")
+            .find(
+              {
+                _id: {
+                  $in: approverIds.map((id) => {
+                    try {
+                      return new ObjectId(id);
+                    } catch {
+                      return id;
+                    }
+                  }) as any,
+                },
+              },
+              { projection: { password: 0 } },
+            )
+            .toArray()
+        : [];
+    const approverMap = new Map(approverUsers.map((u) => [u._id.toString(), u]));
+
+    const approvalsByBooking = new Map<string, any[]>();
+    for (const a of allApprovals) {
+      const bid = a.booking_id as string;
+      if (!approvalsByBooking.has(bid)) approvalsByBooking.set(bid, []);
+      approvalsByBooking.get(bid)!.push({
+        _id: a._id.toString(),
+        stage: a.stage,
+        status: a.status,
+        comments: a.comments || null,
+        decided_at: a.decided_at || null,
+        approver: approverMap.get(a.approver_id as string) || null,
+      });
+    }
+
+    const finalBookings = enrichedBookings.map((b) => ({
+      ...b,
+      approvals: approvalsByBooking.get(b._id as string) || [],
+    }));
+
+    return NextResponse.json({ bookings: finalBookings });
   } catch (error) {
     console.error("List bookings error:", error);
     return NextResponse.json(

@@ -36,6 +36,7 @@ import {
   FileText,
   Filter,
   Loader2,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Venue } from "@/lib/types";
@@ -106,7 +107,17 @@ export default function BookVenuePage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [venuesLoading, setVenuesLoading] = useState(false);
   const [selectedVenueId, setSelectedVenueId] = useState("");
+  const [venueSearch, setVenueSearch] = useState("");
   const selectedVenue = venues.find((v) => v._id === selectedVenueId);
+  const filteredBookingVenues = useMemo(() => {
+    if (!venueSearch.trim()) return venues;
+    const q = venueSearch.toLowerCase();
+    return venues.filter(
+      (v) =>
+        v.name.toLowerCase().includes(q) ||
+        v.building.toLowerCase().includes(q),
+    );
+  }, [venues, venueSearch]);
 
   // Step 3: Calendar slot picker
   const today = useMemo(() => {
@@ -373,13 +384,12 @@ export default function BookVenuePage() {
               <div key={s.num} className="flex items-center gap-1 sm:gap-2">
                 <div className="flex flex-col items-center gap-1">
                   <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-all ${
-                      step > s.num
-                        ? "bg-green-500/90 text-white"
-                        : step === s.num
-                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                          : "bg-muted text-muted-foreground"
-                    }`}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium transition-all ${step > s.num
+                      ? "bg-green-500/90 text-white"
+                      : step === s.num
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                        : "bg-muted text-muted-foreground"
+                      }`}
                   >
                     {step > s.num ? (
                       <CheckCircle2 className="h-4 w-4" />
@@ -388,18 +398,16 @@ export default function BookVenuePage() {
                     )}
                   </div>
                   <span
-                    className={`hidden text-xs font-medium md:block ${
-                      step >= s.num ? "text-foreground" : "text-muted-foreground"
-                    }`}
+                    className={`hidden text-xs font-medium md:block ${step >= s.num ? "text-foreground" : "text-muted-foreground"
+                      }`}
                   >
                     {s.label}
                   </span>
                 </div>
                 {i < steps.length - 1 && (
                   <div
-                    className={`mx-1 h-px w-6 sm:w-10 md:w-16 transition-colors ${
-                      step > s.num ? "bg-green-500/60" : "bg-border"
-                    }`}
+                    className={`mx-1 h-px w-6 sm:w-10 md:w-16 transition-colors ${step > s.num ? "bg-green-500/60" : "bg-border"
+                      }`}
                   />
                 )}
               </div>
@@ -505,76 +513,89 @@ export default function BookVenuePage() {
               </CardHeader>
               <CardContent>
                 {/* Filter bar */}
-                <div className="mb-5 flex items-center gap-3">
-                  <Label className="shrink-0 text-sm">Venue Type:</Label>
-                  <Select
-                    value={venueTypeFilter}
-                    onValueChange={(v) => {
-                      setVenueTypeFilter(v);
-                      setSelectedVenueId("");
-                    }}
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {Object.entries(VENUE_TYPE_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>
-                          {v}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search venues by name or building..."
+                      className="pl-10"
+                      value={venueSearch}
+                      onChange={(e) => setVenueSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Label className="shrink-0 text-sm">Type:</Label>
+                    <Select
+                      value={venueTypeFilter}
+                      onValueChange={(v) => {
+                        setVenueTypeFilter(v);
+                        setSelectedVenueId("");
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        {Object.entries(VENUE_TYPE_LABELS).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>
+                            {v}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                {/* Venues grid */}
+                {/* Venues grid — scrollable, shows ~10 items */}
                 {venuesLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : venues.length === 0 ? (
+                ) : filteredBookingVenues.length === 0 ? (
                   <p className="py-8 text-center text-muted-foreground">
-                    No venues match your criteria. Try a different type.
+                    No venues match your criteria. Try a different search or type.
                   </p>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {venues.map((venue) => (
-                      <button
-                        type="button"
-                        key={venue._id}
-                        onClick={() => setSelectedVenueId(venue._id)}
-                        className={`flex items-start gap-3 rounded-lg border p-4 text-left transition-all ${
-                          selectedVenueId === venue._id
-                            ? "border-primary bg-primary/5 shadow-sm shadow-primary/10"
-                            : "border-border hover:border-primary/30 hover:bg-muted/30"
-                        }`}
-                      >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <Building2 className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">
-                            {venue.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {venue.building}, Floor {venue.floor}
-                            </span>
-                          </p>
-                          <div className="mt-1 flex gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              <Users className="mr-1 h-3 w-3" />
-                              {venue.capacity}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {VENUE_TYPE_LABELS[venue.type] || venue.type}
-                            </Badge>
+                  <div className="max-h-[540px] overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {filteredBookingVenues.map((venue) => (
+                        <button
+                          type="button"
+                          key={venue._id}
+                          onClick={() => setSelectedVenueId(venue._id)}
+                          className={`flex items-start gap-3 rounded-lg border p-4 text-left transition-all ${
+                            selectedVenueId === venue._id
+                              ? "border-primary bg-primary/5 shadow-sm shadow-primary/10"
+                              : "border-border hover:border-primary/30 hover:bg-muted/30"
+                          }`}
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <Building2 className="h-5 w-5 text-primary" />
                           </div>
-                        </div>
-                      </button>
-                    ))}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              {venue.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {venue.building}, Floor {venue.floor}
+                              </span>
+                            </p>
+                            <div className="mt-1 flex gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                <Users className="mr-1 h-3 w-3" />
+                                {venue.capacity}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {VENUE_TYPE_LABELS[venue.type] || venue.type}
+                              </Badge>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -715,11 +736,10 @@ export default function BookVenuePage() {
                               {/* Status dot */}
                               {status !== "past" && !isSelected && (
                                 <span
-                                  className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                                    status === "has-bookings"
-                                      ? "bg-orange-500"
-                                      : "bg-green-500"
-                                  }`}
+                                  className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${status === "has-bookings"
+                                    ? "bg-orange-500"
+                                    : "bg-green-500"
+                                    }`}
                                 />
                               )}
                             </button>
