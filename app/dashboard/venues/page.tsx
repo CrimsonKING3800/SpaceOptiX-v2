@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dialog"
 import { Building2, Users, MapPin, Search, Clock, Plus, Upload, FileSpreadsheet, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import Link from "next/link"
 import type { Venue, VenueType } from "@/lib/types"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -407,9 +406,7 @@ export default function VenuesPage() {
                       )}
                     </div>
                   )}
-                  <Button size="sm" className="mt-4 w-full" asChild>
-                    <Link href={`/dashboard/book?venue=${venue._id}`}>Book This Venue</Link>
-                  </Button>
+
                 </CardContent>
               </Card>
             ))}

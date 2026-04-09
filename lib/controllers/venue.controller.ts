@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { VenueType } from "@/lib/models";
 import * as venueService from "@/lib/services/venue.service";
-import * as blackoutService from "@/lib/services/blackout.service";
 
 export async function getVenues(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -46,40 +45,3 @@ export async function updateVenue(id: string, body: any) {
   return NextResponse.json({ venue: updatedVenue });
 }
 
-export async function addBlackout(
-  venueId: string,
-  body: { startAt: string; endAt: string; reason: string },
-) {
-  const { startAt, endAt, reason } = body;
-
-  if (!startAt || !endAt || !reason) {
-    return NextResponse.json(
-      { error: "Missing required fields: startAt, endAt, reason" },
-      { status: 400 },
-    );
-  }
-
-  const result = await blackoutService.addBlackout(
-    venueId,
-    startAt,
-    endAt,
-    reason,
-  );
-  if (!result.success) {
-    return NextResponse.json({ error: result.message }, { status: 400 });
-  }
-
-  return NextResponse.json(
-    { success: true, blackoutId: result.blackoutId },
-    { status: 201 },
-  );
-}
-
-export async function removeBlackout(blackoutId: string) {
-  const result = await blackoutService.removeBlackout(blackoutId);
-  if (!result.success) {
-    return NextResponse.json({ error: result.message }, { status: 404 });
-  }
-
-  return NextResponse.json({ success: true, message: result.message });
-}

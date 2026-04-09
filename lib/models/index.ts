@@ -106,6 +106,7 @@ export interface Booking {
   status: BookingStatus;
   attendees_count: number;
   rejection_reason?: string;
+  approvals?: Approval[];
   created_at: string;
   updated_at: string;
 }

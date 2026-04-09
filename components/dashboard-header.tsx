@@ -78,11 +78,6 @@ export function DashboardHeader({ title, description }: { title: string; descrip
           <PopoverTrigger asChild>
             <Button variant="outline" size="icon" className="relative bg-transparent">
               <Bell className="h-4 w-4" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
-                  {notifications.length > 9 ? "9+" : notifications.length}
-                </span>
-              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-0" align="end">

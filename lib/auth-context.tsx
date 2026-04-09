@@ -20,6 +20,7 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
+  refreshUser: () => Promise<AuthUser | null>;
   login: (
     email: string,
     password: string,
@@ -57,11 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        return data.user as AuthUser;
       } else {
         setUser(null);
+        return null;
       }
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -122,7 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, refreshUser: fetchUser, login, register, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

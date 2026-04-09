@@ -5,6 +5,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +34,7 @@ import type { UserRole } from "@/lib/types";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const [step, setStep] = useState<"register" | "verify">("register");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -57,6 +59,22 @@ export default function RegisterPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [step, resendCooldown]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +140,12 @@ export default function RegisterPage() {
       }
 
       toast.success("Email verified. Account created successfully!");
-      router.push("/dashboard");
+      const currentUser = await refreshUser();
+      if (currentUser) {
+        router.push("/dashboard");
+      } else {
+        router.push("/login");
+      }
     } catch {
       toast.error("Network error");
     } finally {

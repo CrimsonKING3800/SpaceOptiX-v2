@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Building2, Clock, MapPin, XCircle } from "lucide-react";
+import { CalendarDays, Building2, Clock, MapPin, XCircle, MessageSquare, CheckCircle2, XOctagon } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking } from "@/lib/types";
 
@@ -149,10 +149,32 @@ export default function BookingsPage() {
                             </span>
                           )}
                         </div>
-                        {booking.rejection_reason && (
-                          <p className="mt-2 text-sm text-destructive">
-                            Reason: {booking.rejection_reason}
-                          </p>
+                        {booking.approvals && booking.approvals.length > 0 && (
+                          <div className="mt-2 flex flex-wrap items-start gap-x-4 gap-y-1">
+                            {booking.approvals.map((approval: any) => (
+                              <div key={approval._id} className="flex items-center gap-1.5 text-xs">
+                                {approval.status === "approved" ? (
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                ) : (
+                                  <XOctagon className="h-3.5 w-3.5 text-destructive" />
+                                )}
+                                <span className="font-medium text-foreground">
+                                  {approval.stage === "professor" ? "Professor" : "Admin"}
+                                </span>
+                                <span className={approval.status === "approved" ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}>
+                                  {approval.status === "approved" ? "Approved" : "Rejected"}
+                                </span>
+                                {approval.approver?.name && (
+                                  <span className="text-muted-foreground">· {approval.approver.name}</span>
+                                )}
+                                {approval.comments && (
+                                  <span className="text-muted-foreground">
+                                    — <MessageSquare className="inline h-3 w-3" /> {approval.comments}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
