@@ -1,9 +1,11 @@
 # SpaceOptiX v2
- 
+
 > A comprehensive space booking and venue management platform that streamlines room reservations and facility operations.
- 
+
+### 🌐 [Live Demo → spaceoptix.vercel.app](https://spaceoptix.vercel.app/)
+
 ![SpaceOptiX Landing Page](./public/landing-hero.png)
- 
+
 SpaceOptiX offers a highly responsive dashboard, robust approval workflows, and administrative management tools — built for institutions that need intelligent, auditable space optimization.
  
 ---
@@ -53,7 +55,7 @@ SpaceOptiX offers a highly responsive dashboard, robust approval workflows, and 
  
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-org/spaceoptix-v2.git
+   git clone https://github.com/CrimsonKING3800/SpaceOptiX-v2.git
    cd SpaceOptiX-v2
    ```
  
