@@ -144,6 +144,7 @@ SpaceOptiX offers a highly responsive dashboard, robust approval workflows, and 
 | Shaurya Shreyas | [@CrimsonKING3800](https://github.com/CrimsonKING3800) |
 | Kumar Sakchham | [@Code-Krasher09](https://github.com/Code-Krasher09) |
 | Praneeth Tadi | [@Nobody163107](https://github.com/Nobody163107) |
+| Kshitij Nayan | [@KshitijNayan](https://github.com/KshitijNayan) |
  
 Submitted to **Prof. G Sen**, IIT Kharagpur.
  
